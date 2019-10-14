@@ -6,7 +6,7 @@ import sys
 import sqlalchemy
 from sqlalchemy import create_engine
 import pandas as pd
-
+import os
 
 def setup_data(db_url='sqlite:////tmp/data.db'):
    engine = create_engine(db_url, echo=True)
@@ -21,13 +21,13 @@ def setup_data(db_url='sqlite:////tmp/data.db'):
 def get_data(db_url='sqlite:////tmp/data.db'):
    engine = create_engine(db_url, echo=True)
    conn = engine.connect()
-   df =  pd.read_sql_table('dat', conn)
+   df =  pd.read_sql_table('data', conn)
    conn.close()
    return df
 
 if __name__ == "__main__":
    print('Starting up...')
-   setup_data()
+   #setup_data()
 
    with mlflow.start_run():
      mlflow.log_param("x", 1)
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         mlflow.log_metric(key='quality', value=2*i, step=i)
 
      lr = LogisticRegression()
-     df = get_data()
+     df = get_data(db_url = os.environ.get('DB_URL', 'sqlite:////tmp/data.db'))
      X = df['x'].values.reshape(-1, 1)
      y = df['value'].values
      lr.fit(X, y)
