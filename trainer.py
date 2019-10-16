@@ -7,16 +7,8 @@ import sqlalchemy
 from sqlalchemy import create_engine
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 
-def setup_data(db_url='sqlite:////tmp/data.db'):
-   engine = create_engine(db_url, echo=True)
-   conn = engine.connect()
-   conn.execute('CREATE table dat(x float, value float)')
-
-   for i in range(-2, 2, 1):
-      print(i, 1 if i>0 else 0)
-      conn.execute(f'INSERT into dat(x, value) values({i},{1 if i>0 else 0} )')
-   conn.close()
 
 def get_data(db_url='sqlite:////tmp/data.db'):
    engine = create_engine(db_url, echo=True)
@@ -30,18 +22,19 @@ if __name__ == "__main__":
    #setup_data()
 
    with mlflow.start_run():
-     mlflow.log_param("x", 1)
      mlflow.log_metric("y", 2)
 
-     # metrics:
-     for i in range(0, 3):
-        mlflow.log_metric(key='quality', value=2*i, step=i)
-
      lr = LogisticRegression()
+     mlflow.log_param('penalty', lr.penalty)
+     mlflow.log_param('max_iter', lr.max_iter)
+
+
      df = get_data(db_url = os.environ.get('DB_URL', 'sqlite:////tmp/data.db'))
      X = df['x'].values.reshape(-1, 1)
      y = df['value'].values
      lr.fit(X, y)
+
+     mlflow.log_metric('score', lr.score(X, y))
 
      mlflow.sklearn.log_model(sk_model=lr, artifact_path='model', conda_env={
          'name': 'mlflow-env',
@@ -54,3 +47,9 @@ if __name__ == "__main__":
              'SQLAlchemy==1.3.8'
          ]
      })
+
+     pred = lr.predict(X)
+     plt.plot(X, pred)
+     plt.plot(X, y)
+     plt.savefig('predictions.png')
+     mlflow.log_artifact('./predictions.png', 'performance')
