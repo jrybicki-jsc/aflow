@@ -1,5 +1,6 @@
 import mlflow
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
 import mlflow.sklearn
 import numpy as np
 import sys
@@ -24,12 +25,12 @@ if __name__ == "__main__":
    with mlflow.start_run():
      mlflow.log_metric("y", 2)
 
-     lr = LogisticRegression()
-     mlflow.log_param('penalty', lr.penalty)
-     mlflow.log_param('max_iter', lr.max_iter)
+     lr =  RandomForestRegressor(n_estimators=100)
+     mlflow.log_param('n_estimators', lr.n_estimators)
+     mlflow.log_param('min_samples_split', lr.min_samples_split)
 
 
-     df = get_data(db_url = os.environ.get('DB_URL', 'sqlite:////tmp/data.db'))
+     df = get_data(db_url = os.environ.get('DB_URL', 'sqlite:////tmp/mydata.db'))
      X = df['x'].values.reshape(-1, 1)
      y = df['value'].values
      lr.fit(X, y)
@@ -49,7 +50,8 @@ if __name__ == "__main__":
      })
 
      pred = lr.predict(X)
-     plt.plot(X, pred)
-     plt.plot(X, y)
+     plt.plot(X, pred, label='Prediction')
+     plt.plot(X, y, label='Data')
+     plt.legend()
      plt.savefig('predictions.png')
      mlflow.log_artifact('./predictions.png', 'performance')
